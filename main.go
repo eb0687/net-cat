@@ -94,8 +94,8 @@ func broadcastMessage(user User, content string) {
 	}
 
 	messagesMutex.Lock()
+	defer messagesMutex.Unlock()
 	messages = append(messages, msg)
-	messagesMutex.Unlock()
 
 	formattedMessage := fmt.Sprintf("[%s][%s]:%s", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
 	notifyAll(formattedMessage, user)
@@ -164,6 +164,7 @@ func processClient(conn net.Conn) {
 			exitMessage := fmt.Sprintf("%s has left our chat...", username)
 			notifyAll(exitMessage, user)
 			fmt.Fprintln(conn, "Goodbye!")
+			conn.Close()
 			break
 		}
 		if msg == "" {
