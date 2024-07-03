@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"time"
 )
+
+const defaultPort = "8989"
 
 type ipAddr string
 type user string
@@ -19,22 +22,34 @@ type User struct {
 }
 
 type Message struct {
-	messageBody string
-	sentAt      time.Time
-	sentBy      User
+	content   string
+	timeStamp time.Time
+	clienName User
 }
 
 var Messages = []Message{}
 var Users = []User{}
 
 func main() {
-	addr := fmt.Sprintf("%s:%v", "10.1.204.172", "3333")
+
+	port := defaultPort
+	arg := os.Args[1:]
+
+	if len(arg) == 1 {
+		port = arg[0]
+	} else if len(arg) > 1 {
+		fmt.Println("[USAGE]: ./TCPChat $host")
+		return
+	}
+
+	addr := fmt.Sprintf("%s:%v", "localhost", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Println("port is already in use")
 		fmt.Printf("err: %v\n", err)
 		return
 	}
+	defer listener.Close()
 
 	log.Printf("Listening for connections on %s", listener.Addr().String())
 
@@ -48,6 +63,16 @@ func main() {
 		}
 	}
 
+}
+
+func getPort() string {
+	arg := os.Args[1:]
+	if len(arg) == 1 {
+		return os.Args[1]
+	} else if len(arg) > 1 {
+		fmt.Println("[USAGE]: ./TCPChat $port")
+	}
+	return ""
 }
 
 func processClient(conn net.Conn) {
