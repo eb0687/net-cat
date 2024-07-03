@@ -65,14 +65,14 @@ func main() {
 	}
 }
 
-func promptUsername(conn net.Conn) string {
-	conn.Write([]byte("Please enter a username: "))
-	scanner := bufio.NewScanner(conn)
-	if scanner.Scan() {
-		return scanner.Text()
-	}
-	return ""
-}
+// func promptUsername(conn net.Conn) string {
+// 	conn.Write([]byte("Please enter a username: "))
+// 	scanner := bufio.NewScanner(conn)
+// 	if scanner.Scan() {
+// 		return scanner.Text()
+// 	}
+// 	return ""
+// }
 
 func notifyAll(message string, sender User) {
 	usersMutex.Lock()
@@ -97,7 +97,7 @@ func broadcastMessage(user User, content string) {
 	messages = append(messages, msg)
 	messagesMutex.Unlock()
 
-	formattedMessage := fmt.Sprintf("[%s][%s]: %s", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
+	formattedMessage := fmt.Sprintf("[%s][%s]:%s", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
 	notifyAll(formattedMessage, user)
 
 }
@@ -107,21 +107,37 @@ func sendPreviousMessages(conn net.Conn) {
 	defer messagesMutex.Unlock()
 
 	for _, msg := range messages {
-		conn.Write([]byte(fmt.Sprintf("[%s][%s]: %s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)))
+		conn.Write([]byte(fmt.Sprintf("[%s][%s]:%s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)))
 	}
 }
 
 func processClient(conn net.Conn) {
 	fmt.Println("Processing client connection...")
-	msg := "Hello & welcome to net-cat server!" + "\n" + conn.RemoteAddr().String() + "\n"
-	conn.Write([]byte(msg))
-	fmt.Printf("SERVER: %v\n", msg)
+	// msg := "Hello & welcome to net-cat server!" + "\n" + conn.RemoteAddr().String() + "\n"
+	// conn.Write([]byte(msg))
+	// fmt.Printf("SERVER: %v\n", msg)
 
-	defer conn.Close()
-	username := promptUsername(conn)
+	logo, err := os.ReadFile("logo.txt")
+	if err != nil {
+		log.Printf("Error reading logo file: %v", err)
+		conn.Write([]byte("Welcome to TCP-Chat!\n[ENTER YOUR NAME]: "))
+	} else {
+		conn.Write([]byte("Welcome to TCP-Chat!\n"))
+		conn.Write(logo)
+		conn.Write([]byte("\n[ENTER YOUR NAME]: "))
+	}
+
+	// defer conn.Close()
+	scanner := bufio.NewScanner(conn)
+	var username string
+	if scanner.Scan() {
+		username = scanner.Text()
+	}
+	// username := promptUsername(conn)
 	if username == "" {
 		fmt.Fprintln(conn, "Empty username is not allowed!")
 		fmt.Fprintln(conn, "Reconnect to the server and try again.")
+		conn.Close()
 		return
 	}
 
@@ -136,16 +152,16 @@ func processClient(conn net.Conn) {
 	users[conn] = user
 	usersMutex.Unlock()
 
-	joinMessage := fmt.Sprintf("[%s]: %s joined the chat", time.Now().Format("2006-01-02 15:04:05"), username)
+	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
 	notifyAll(joinMessage, user)
 	sendPreviousMessages(conn)
 
-	scanner := bufio.NewScanner(conn)
+	// scanner := bufio.NewScanner(conn)
 	for scanner.Scan() {
 		msg := scanner.Text()
 		if msg == "exit" {
 			fmt.Println("Client requested to close the connection.")
-			exitMessage := fmt.Sprintf("[%s]: %s left the chat", time.Now().Format("2006-01-02 15:04:05"), username)
+			exitMessage := fmt.Sprintf("%s has left our chat...", username)
 			notifyAll(exitMessage, user)
 			fmt.Fprintln(conn, "Goodbye!")
 			break
