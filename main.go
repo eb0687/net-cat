@@ -6,13 +6,11 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 	"time"
 )
 
 const defaultPort = "8989"
-
-type ipAddr string
-type user string
 
 type User struct {
 	username   string
@@ -22,23 +20,26 @@ type User struct {
 }
 
 type Message struct {
-	content   string
-	timeStamp time.Time
-	clienName User
+	content    string
+	timeStamp  time.Time
+	clientName string
 }
 
-var Messages = []Message{}
-var Users = []User{}
+var (
+	messages      []Message
+	users         = make(map[net.Conn]User)
+	usersMutex    sync.Mutex
+	messagesMutex sync.Mutex
+)
 
 func main() {
-
 	port := defaultPort
 	arg := os.Args[1:]
 
 	if len(arg) == 1 {
 		port = arg[0]
 	} else if len(arg) > 1 {
-		fmt.Println("[USAGE]: ./TCPChat $host")
+		fmt.Println("[USAGE]: ./TCPChat $port")
 		return
 	}
 
@@ -62,47 +63,90 @@ func main() {
 			go processClient(conn)
 		}
 	}
-
 }
 
-func getPort() string {
-	arg := os.Args[1:]
-	if len(arg) == 1 {
-		return os.Args[1]
-	} else if len(arg) > 1 {
-		fmt.Println("[USAGE]: ./TCPChat $port")
+func promptUsername(conn net.Conn) string {
+	conn.Write([]byte("Please enter a username: "))
+	scanner := bufio.NewScanner(conn)
+	if scanner.Scan() {
+		return scanner.Text()
 	}
 	return ""
 }
 
+func notifyAll(message string, sender User) {
+	usersMutex.Lock()
+	defer usersMutex.Unlock()
+
+	for conn, user := range users {
+		if sender.username != "" && sender.username == user.username {
+			continue
+		}
+		conn.Write([]byte(message + "\n"))
+	}
+}
+
+func broadcastMessage(user User, content string) {
+	msg := Message{
+		content:    content,
+		timeStamp:  time.Now(),
+		clientName: user.username,
+	}
+
+	messagesMutex.Lock()
+	messages = append(messages, msg)
+	messagesMutex.Unlock()
+
+	formattedMessage := fmt.Sprintf("[%s][%s]: %s", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
+	notifyAll(formattedMessage, user)
+
+}
+
+func sendPreviousMessages(conn net.Conn) {
+	messagesMutex.Lock()
+	defer messagesMutex.Unlock()
+
+	for _, msg := range messages {
+		conn.Write([]byte(fmt.Sprintf("[%s][%s]: %s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)))
+	}
+}
+
 func processClient(conn net.Conn) {
 	fmt.Println("Processing client connection...")
-	msg := "Hello from server!" + "\n" + conn.RemoteAddr().String() + "\n"
+	msg := "Hello & welcome to net-cat server!" + "\n" + conn.RemoteAddr().String() + "\n"
 	conn.Write([]byte(msg))
-	fmt.Printf("msg: %v\n", msg)
+	fmt.Printf("SERVER: %v\n", msg)
 
-	s := bufio.NewScanner(conn)
-	conn.Write([]byte("Please enter a username: "))
+	defer conn.Close()
+	username := promptUsername(conn)
+	if username == "" {
+		fmt.Fprintln(conn, "Empty username is not allowed!")
+		fmt.Fprintln(conn, "Reconnect to the server and try again.")
+		return
+	}
 
-	isfirstmsg := true
+	user := User{
+		username:   username,
+		ipaddress:  conn.RemoteAddr().String(),
+		joinedAt:   time.Now(),
+		connection: conn,
+	}
 
-	username := ""
+	usersMutex.Lock()
+	users[conn] = user
+	usersMutex.Unlock()
 
-	for s.Scan() {
+	joinMessage := fmt.Sprintf("[%s]: %s joined the chat", time.Now().Format("2006-01-02 15:04:05"), username)
+	notifyAll(joinMessage, user)
+	sendPreviousMessages(conn)
 
-		msg := s.Text()
-		if isfirstmsg {
-			username = msg
-			Users = append(Users, User{
-				username:   username,
-				ipaddress:  conn.RemoteAddr().String(),
-				joinedAt:   time.Now(),
-				connection: conn,
-			})
-			isfirstmsg = false
-		}
+	scanner := bufio.NewScanner(conn)
+	for scanner.Scan() {
+		msg := scanner.Text()
 		if msg == "exit" {
 			fmt.Println("Client requested to close the connection.")
+			exitMessage := fmt.Sprintf("[%s]: %s left the chat", time.Now().Format("2006-01-02 15:04:05"), username)
+			notifyAll(exitMessage, user)
 			fmt.Fprintln(conn, "Goodbye!")
 			break
 		}
@@ -110,22 +154,10 @@ func processClient(conn net.Conn) {
 			fmt.Fprintln(conn, "Empty messages are not allowed!")
 			continue
 		}
-
-		for _, c := range Users {
-			fmt.Printf("c: %+v\n", c)
-			if username == c.username {
-				continue
-			}
-			fmt.Fprintf(c.connection, "[%v][%v]:%v\n[%v][%v]:",
-				time.Now().Format("2020-01-20 15:48:41"),
-				username,
-				msg,
-				time.Now().Format("2020-01-20 15:48:41"),
-				c.username)
-		}
-
+		broadcastMessage(user, msg)
 	}
 
-	fmt.Println("finished processing client connection.")
-	conn.Close()
+	usersMutex.Lock()
+	delete(users, conn)
+	usersMutex.Unlock()
 }
