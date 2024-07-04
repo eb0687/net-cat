@@ -66,7 +66,6 @@ func main() {
 	}
 }
 
-// TODO: need to fix the formatting logic
 func notifyAll(message string, sender User, isSystemMessage bool) {
 	usersMutex.Lock()
 	defer usersMutex.Unlock()
@@ -88,7 +87,6 @@ func notifyAll(message string, sender User, isSystemMessage bool) {
 	}
 }
 
-// TODO: need to fix the formatting logic
 func broadcastMessage(user User, content string, isSystemMessage bool) {
 	msg := Message{
 		content:       content,
@@ -171,7 +169,7 @@ func processClient(conn net.Conn) {
 	for scanner.Scan() {
 		msg := scanner.Text()
 		if msg == "exit" {
-			fmt.Println("Client requested to close the connection.")
+			log.Printf("%s has requested to close the connection.", username)
 			exitMessage := fmt.Sprintf("%s has left our chat...", username)
 			broadcastMessage(user, exitMessage, true)
 			fmt.Fprintln(conn, "Goodbye!")
