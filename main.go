@@ -20,9 +20,10 @@ type User struct {
 }
 
 type Message struct {
-	content    string
-	timeStamp  time.Time
-	clientName string
+	content       string
+	timeStamp     time.Time
+	clientName    string
+	systemMessage bool
 }
 
 var (
@@ -65,16 +66,8 @@ func main() {
 	}
 }
 
-// func promptUsername(conn net.Conn) string {
-// 	conn.Write([]byte("Please enter a username: "))
-// 	scanner := bufio.NewScanner(conn)
-// 	if scanner.Scan() {
-// 		return scanner.Text()
-// 	}
-// 	return ""
-// }
-
-func notifyAll(message string, sender User) {
+// TODO: need to fix the formatting logic
+func notifyAll(message string, sender User, isSystemMessage bool) {
 	usersMutex.Lock()
 	defer usersMutex.Unlock()
 
@@ -82,24 +75,37 @@ func notifyAll(message string, sender User) {
 		if sender.username != "" && sender.username == user.username {
 			continue
 		}
-		conn.Write([]byte(message + "\n"))
+		prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), user.username)
+
+		conn.Write([]byte("\n"))
+		if isSystemMessage {
+			// conn.Write([]byte(message + "\n"))
+			conn.Write([]byte(message))
+		} else {
+			formattedMessage := fmt.Sprintf("[%s][%s]:%s", time.Now().Format("2006-01-02 15:04:05"), sender.username, message)
+			conn.Write([]byte(formattedMessage + "\n" + prompt))
+		}
 	}
 }
 
-func broadcastMessage(user User, content string) {
+// TODO: need to fix the formatting logic
+func broadcastMessage(user User, content string, isSystemMessage bool) {
 	msg := Message{
-		content:    content,
-		timeStamp:  time.Now(),
-		clientName: user.username,
+		content:       content,
+		timeStamp:     time.Now(),
+		clientName:    user.username,
+		systemMessage: isSystemMessage,
 	}
 
 	messagesMutex.Lock()
 	defer messagesMutex.Unlock()
 	messages = append(messages, msg)
 
-	formattedMessage := fmt.Sprintf("[%s][%s]:%s", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
-	notifyAll(formattedMessage, user)
-
+	if isSystemMessage {
+		notifyAll(content, user, true)
+	} else {
+		notifyAll(content, user, false)
+	}
 }
 
 func sendPreviousMessages(conn net.Conn) {
@@ -107,15 +113,16 @@ func sendPreviousMessages(conn net.Conn) {
 	defer messagesMutex.Unlock()
 
 	for _, msg := range messages {
-		conn.Write([]byte(fmt.Sprintf("[%s][%s]:%s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)))
+		if msg.systemMessage {
+			conn.Write([]byte(msg.content + "\n"))
+		} else {
+			conn.Write([]byte(fmt.Sprintf("[%s][%s]:%s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)))
+		}
 	}
 }
 
 func processClient(conn net.Conn) {
 	fmt.Println("Processing client connection...")
-	// msg := "Hello & welcome to net-cat server!" + "\n" + conn.RemoteAddr().String() + "\n"
-	// conn.Write([]byte(msg))
-	// fmt.Printf("SERVER: %v\n", msg)
 
 	logo, err := os.ReadFile("logo.txt")
 	if err != nil {
@@ -127,13 +134,11 @@ func processClient(conn net.Conn) {
 		conn.Write([]byte("\n[ENTER YOUR NAME]: "))
 	}
 
-	// defer conn.Close()
 	scanner := bufio.NewScanner(conn)
 	var username string
 	if scanner.Scan() {
 		username = scanner.Text()
 	}
-	// username := promptUsername(conn)
 	if username == "" {
 		fmt.Fprintln(conn, "Empty username is not allowed!")
 		fmt.Fprintln(conn, "Reconnect to the server and try again.")
@@ -153,25 +158,34 @@ func processClient(conn net.Conn) {
 	usersMutex.Unlock()
 
 	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
-	notifyAll(joinMessage, user)
+	broadcastMessage(user, joinMessage, true)
 	sendPreviousMessages(conn)
 
-	// scanner := bufio.NewScanner(conn)
+	displayPrompt := func() {
+		prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), username)
+		conn.Write([]byte(prompt))
+	}
+
+	displayPrompt()
+
 	for scanner.Scan() {
 		msg := scanner.Text()
 		if msg == "exit" {
 			fmt.Println("Client requested to close the connection.")
 			exitMessage := fmt.Sprintf("%s has left our chat...", username)
-			notifyAll(exitMessage, user)
+			broadcastMessage(user, exitMessage, true)
 			fmt.Fprintln(conn, "Goodbye!")
 			conn.Close()
 			break
 		}
 		if msg == "" {
 			fmt.Fprintln(conn, "Empty messages are not allowed!")
+			displayPrompt()
 			continue
 		}
-		broadcastMessage(user, msg)
+
+		broadcastMessage(user, msg, false)
+		displayPrompt()
 	}
 
 	usersMutex.Lock()
