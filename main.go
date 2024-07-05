@@ -49,7 +49,7 @@ func main() {
 		return
 	}
 
-	addr := fmt.Sprintf("%s:%v", "localhost", port)
+	addr := fmt.Sprintf(":%v", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Println("port is already in use")
