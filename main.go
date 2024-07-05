@@ -61,13 +61,6 @@ func main() {
 	log.Printf("Listening for connections on %s", listener.Addr().String())
 
 	for {
-		// conn, err := listener.Accept()
-		// if err != nil {
-		// 	log.Printf("Error accepting connection from client: %s", err)
-		// } else {
-		// 	fmt.Println("Connection accepted!")
-		// 	go processClient(conn)
-		// }
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Error accepting connection from client: %s", err)
