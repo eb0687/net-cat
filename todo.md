@@ -16,7 +16,7 @@
 - [x] Start TCP server, listen and accept connections
 - [x] Your project must have Go-routines
 - [x] Your project must have channels or Mutexes
-- [ ] Maximum 10 connections
+- [x] Maximum 10 connections
 - [ ] It is recommended to have test files for unit testing both the server connection and the client.
 
 ## Bonus
