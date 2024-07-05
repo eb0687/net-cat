@@ -10,7 +10,10 @@ import (
 	"time"
 )
 
-const defaultPort = "8989"
+const (
+	defaultPort = "8989"
+	maxClients  = 10
+)
 
 type User struct {
 	username   string
@@ -27,10 +30,12 @@ type Message struct {
 }
 
 var (
-	messages      []Message
-	users         = make(map[net.Conn]User)
-	usersMutex    sync.Mutex
-	messagesMutex sync.Mutex
+	messages        []Message
+	users           = make(map[net.Conn]User)
+	usersMutex      sync.Mutex
+	messagesMutex   sync.Mutex
+	activeClients   int
+	activeClientsMu sync.Mutex
 )
 
 func main() {
@@ -56,13 +61,31 @@ func main() {
 	log.Printf("Listening for connections on %s", listener.Addr().String())
 
 	for {
+		// conn, err := listener.Accept()
+		// if err != nil {
+		// 	log.Printf("Error accepting connection from client: %s", err)
+		// } else {
+		// 	fmt.Println("Connection accepted!")
+		// 	go processClient(conn)
+		// }
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Error accepting connection from client: %s", err)
-		} else {
-			fmt.Println("Connection accepted!")
-			go processClient(conn)
+			continue
 		}
+
+		activeClientsMu.Lock()
+		if activeClients >= maxClients {
+			activeClientsMu.Unlock()
+			conn.Write([]byte("Server is full. Please try again later.\n"))
+			conn.Close()
+			continue
+		}
+
+		activeClients++
+		activeClientsMu.Unlock()
+
+		go processClient(conn)
 	}
 }
 
@@ -114,13 +137,24 @@ func sendPreviousMessages(conn net.Conn) {
 		if msg.systemMessage {
 			conn.Write([]byte(msg.content + "\n"))
 		} else {
-			conn.Write([]byte(fmt.Sprintf("[%s][%s]:%s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)))
+			fmt.Fprintf(conn, "[%s][%s]:%s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
 		}
 	}
 }
 
 func processClient(conn net.Conn) {
 	fmt.Println("Processing client connection...")
+
+	defer func() {
+		conn.Close()
+		usersMutex.Lock()
+		delete(users, conn)
+		usersMutex.Unlock()
+
+		activeClientsMu.Lock()
+		activeClients--
+		activeClientsMu.Unlock()
+	}()
 
 	logo, err := os.ReadFile("logo.txt")
 	if err != nil {
