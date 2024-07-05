@@ -85,11 +85,11 @@ func main() {
 		activeClients++
 		activeClientsMu.Unlock()
 
-		go processClient(conn)
+		go ProcessClient(conn)
 	}
 }
 
-func notifyAll(message string, sender User, isSystemMessage bool) {
+func NotifyAll(message string, sender User, isSystemMessage bool) {
 	usersMutex.Lock()
 	defer usersMutex.Unlock()
 
@@ -110,7 +110,7 @@ func notifyAll(message string, sender User, isSystemMessage bool) {
 	}
 }
 
-func broadcastMessage(user User, content string, isSystemMessage bool) {
+func BroadcastMessage(user User, content string, isSystemMessage bool) {
 	msg := Message{
 		content:       content,
 		timeStamp:     time.Now(),
@@ -123,13 +123,13 @@ func broadcastMessage(user User, content string, isSystemMessage bool) {
 	messages = append(messages, msg)
 
 	if isSystemMessage {
-		notifyAll(content, user, true)
+		NotifyAll(content, user, true)
 	} else {
-		notifyAll(content, user, false)
+		NotifyAll(content, user, false)
 	}
 }
 
-func sendPreviousMessages(conn net.Conn) {
+func SendPreviousMessages(conn net.Conn) {
 	messagesMutex.Lock()
 	defer messagesMutex.Unlock()
 
@@ -142,7 +142,7 @@ func sendPreviousMessages(conn net.Conn) {
 	}
 }
 
-func processClient(conn net.Conn) {
+func ProcessClient(conn net.Conn) {
 	fmt.Println("Processing client connection...")
 
 	defer func() {
@@ -190,8 +190,8 @@ func processClient(conn net.Conn) {
 	usersMutex.Unlock()
 
 	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
-	broadcastMessage(user, joinMessage, true)
-	sendPreviousMessages(conn)
+	BroadcastMessage(user, joinMessage, true)
+	SendPreviousMessages(conn)
 
 	displayPrompt := func() {
 		prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), username)
@@ -205,7 +205,7 @@ func processClient(conn net.Conn) {
 		if msg == "exit" {
 			log.Printf("%s has requested to close the connection.", username)
 			exitMessage := fmt.Sprintf("%s has left our chat...", username)
-			broadcastMessage(user, exitMessage, true)
+			BroadcastMessage(user, exitMessage, true)
 			fmt.Fprintln(conn, "Goodbye!")
 			conn.Close()
 			break
@@ -216,7 +216,7 @@ func processClient(conn net.Conn) {
 			continue
 		}
 
-		broadcastMessage(user, msg, false)
+		BroadcastMessage(user, msg, false)
 		displayPrompt()
 	}
 
