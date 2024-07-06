@@ -58,12 +58,14 @@ func main() {
 	addr := fmt.Sprintf(":%v", port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		fmt.Println("port is already in use")
+		// fmt.Println("port is already in use")
+		fmt.Printf("err: %v\n", err)
 		log.Printf("err: %v\n", err)
 		return
 	}
 	defer listener.Close()
 
+	fmt.Printf("Listening for connections on %s", listener.Addr().String())
 	log.Printf("Listening for connections on %s", listener.Addr().String())
 
 	for {
@@ -77,7 +79,7 @@ func main() {
 		if activeClients >= maxClients {
 			activeClientsMu.Unlock()
 			conn.Write([]byte("Server is full. Please try again later.\n"))
-			log.Printf("Maximum clients reached.")
+			log.Printf("Maximum number of clients reached.")
 			conn.Close()
 			continue
 		}
