@@ -65,7 +65,7 @@ func main() {
 	}
 	defer listener.Close()
 
-	fmt.Printf("Listening for connections on %s", listener.Addr().String())
+	fmt.Printf("Listening for connections on %s\n", listener.Addr().String())
 	log.Printf("Listening for connections on %s", listener.Addr().String())
 
 	for {
