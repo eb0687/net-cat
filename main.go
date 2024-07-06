@@ -39,7 +39,7 @@ var (
 )
 
 func main() {
-	err := SetupLogging("tcp_chat.log")
+	err := SetupLogging("chat.log")
 	if err != nil {
 		fmt.Printf("Error setting up logging: %v\n", err)
 		return
