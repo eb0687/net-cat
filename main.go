@@ -39,6 +39,12 @@ var (
 )
 
 func main() {
+	err := SetupLogging("tcp_chat.log")
+	if err != nil {
+		fmt.Printf("Error setting up logging: %v\n", err)
+		return
+	}
+
 	port := defaultPort
 	arg := os.Args[1:]
 
@@ -53,7 +59,7 @@ func main() {
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
 		fmt.Println("port is already in use")
-		fmt.Printf("err: %v\n", err)
+		log.Printf("err: %v\n", err)
 		return
 	}
 	defer listener.Close()
@@ -71,6 +77,7 @@ func main() {
 		if activeClients >= maxClients {
 			activeClientsMu.Unlock()
 			conn.Write([]byte("Server is full. Please try again later.\n"))
+			log.Printf("Maximum clients reached.")
 			conn.Close()
 			continue
 		}
@@ -80,6 +87,16 @@ func main() {
 
 		go ProcessClient(conn)
 	}
+}
+
+func SetupLogging(filename string) error {
+	logFile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return err
+	}
+
+	log.SetOutput(logFile)
+	return nil
 }
 
 func NotifyAll(message string, sender User, isSystemMessage bool) {
@@ -189,6 +206,7 @@ func ProcessClient(conn net.Conn) {
 
 		if duplicate {
 			conn.Write([]byte("Username is already taken. Please enter a different username: "))
+			log.Printf("username already taken: %s", username)
 		} else {
 			break
 		}
@@ -206,6 +224,7 @@ func ProcessClient(conn net.Conn) {
 	usersMutex.Unlock()
 
 	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
+	log.Printf("%s has joined the server", username)
 
 	BroadcastMessage(user, joinMessage, true)
 	SendPreviousMessages(conn)
