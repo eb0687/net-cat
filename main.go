@@ -108,13 +108,19 @@ func NotifyAll(message string, sender User, isSystemMessage bool) {
 			continue
 		}
 		prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), user.username)
+		formattedMessage := fmt.Sprintf(
+			"[%s][%s]:%s",
+			time.Now().Format("2006-01-02 15:04:05"),
+			sender.username,
+			message,
+		)
 
 		conn.Write([]byte("\n"))
 		if isSystemMessage {
-			// conn.Write([]byte(message + "\n"))
 			conn.Write([]byte(message))
+			conn.Write([]byte("\n"))
+			conn.Write([]byte(formattedMessage + "\n" + prompt))
 		} else {
-			formattedMessage := fmt.Sprintf("[%s][%s]:%s", time.Now().Format("2006-01-02 15:04:05"), sender.username, message)
 			conn.Write([]byte(formattedMessage + "\n" + prompt))
 		}
 	}
