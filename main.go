@@ -109,7 +109,10 @@ func NotifyAll(message string, sender User, isSystemMessage bool) {
 		if sender.username != "" && sender.username == user.username {
 			continue
 		}
-		prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), user.username)
+		prompt := fmt.Sprintf("[%s][%s]:",
+			time.Now().Format("2006-01-02 15:04:05"),
+			user.username)
+
 		formattedMessage := fmt.Sprintf(
 			"[%s][%s]:%s",
 			time.Now().Format("2006-01-02 15:04:05"),
@@ -155,13 +158,18 @@ func SendPreviousMessages(conn net.Conn) {
 		if msg.systemMessage {
 			conn.Write([]byte(msg.content + "\n"))
 		} else {
-			fmt.Fprintf(conn, "[%s][%s]:%s\n", msg.timeStamp.Format("2006-01-02 15:04:05"), msg.clientName, msg.content)
+			fmt.Fprintf(conn, "[%s][%s]:%s\n",
+				msg.timeStamp.Format("2006-01-02 15:04:05"),
+				msg.clientName,
+				msg.content)
 		}
 	}
 }
 
 func DisplayPrompt(conn net.Conn, username string) {
-	prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), username)
+	prompt := fmt.Sprintf("[%s][%s]:",
+		time.Now().Format("2006-01-02 15:04:05"),
+		username)
 	conn.Write([]byte(prompt))
 }
 
