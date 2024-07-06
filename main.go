@@ -135,6 +135,23 @@ func SendPreviousMessages(conn net.Conn) {
 	}
 }
 
+func DisplayPrompt(conn net.Conn, username string) {
+	prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), username)
+	conn.Write([]byte(prompt))
+}
+
+func DisplayLogo(conn net.Conn) {
+	logo, err := os.ReadFile("logo.txt")
+	if err != nil {
+		log.Printf("Error reading logo file: %v", err)
+		conn.Write([]byte("Welcome to TCP-Chat!\n[ENTER YOUR NAME]: "))
+	} else {
+		conn.Write([]byte("Welcome to TCP-Chat!\n"))
+		conn.Write(logo)
+		conn.Write([]byte("\n[ENTER YOUR NAME]: "))
+	}
+}
+
 func ProcessClient(conn net.Conn) {
 	fmt.Println("Processing client connection...")
 
@@ -149,15 +166,7 @@ func ProcessClient(conn net.Conn) {
 		activeClientsMu.Unlock()
 	}()
 
-	logo, err := os.ReadFile("logo.txt")
-	if err != nil {
-		log.Printf("Error reading logo file: %v", err)
-		conn.Write([]byte("Welcome to TCP-Chat!\n[ENTER YOUR NAME]: "))
-	} else {
-		conn.Write([]byte("Welcome to TCP-Chat!\n"))
-		conn.Write(logo)
-		conn.Write([]byte("\n[ENTER YOUR NAME]: "))
-	}
+	DisplayLogo(conn)
 
 	scanner := bufio.NewScanner(conn)
 	var username string
@@ -197,15 +206,10 @@ func ProcessClient(conn net.Conn) {
 	usersMutex.Unlock()
 
 	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
+
 	BroadcastMessage(user, joinMessage, true)
 	SendPreviousMessages(conn)
-
-	displayPrompt := func() {
-		prompt := fmt.Sprintf("[%s][%s]:", time.Now().Format("2006-01-02 15:04:05"), username)
-		conn.Write([]byte(prompt))
-	}
-
-	displayPrompt()
+	DisplayPrompt(conn, username)
 
 	for scanner.Scan() {
 		msg := scanner.Text()
@@ -219,12 +223,12 @@ func ProcessClient(conn net.Conn) {
 		}
 		if msg == "" {
 			fmt.Fprintln(conn, "Empty messages are not allowed!")
-			displayPrompt()
+			DisplayPrompt(conn, username)
 			continue
 		}
 
 		BroadcastMessage(user, msg, false)
-		displayPrompt()
+		DisplayPrompt(conn, username)
 	}
 
 	usersMutex.Lock()
