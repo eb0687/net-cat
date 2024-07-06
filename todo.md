@@ -22,5 +22,5 @@
 ## Bonus
 
 - [ ] Terminal UI (you are allowed to use only this package : https://github.com/jroimartin/gocui).
-- [ ] Find a way to save all the logs into a file.
+- [x] Find a way to save all the logs into a file.
 - [ ] Creating more than 1 group chat.
