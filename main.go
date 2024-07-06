@@ -230,7 +230,7 @@ func ProcessClient(conn net.Conn) {
 	usersMutex.Unlock()
 
 	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
-	log.Printf("%s has joined the server", username)
+	log.Printf("%s [%s] has joined the server", username, user.ipaddress)
 
 	BroadcastMessage(user, joinMessage, true)
 	SendPreviousMessages(conn)
