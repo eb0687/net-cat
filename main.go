@@ -186,7 +186,7 @@ func DisplayLogo(conn net.Conn) {
 }
 
 func ProcessClient(conn net.Conn) {
-	fmt.Println("\nProcessing client connection...")
+	fmt.Println("Processing client connection...")
 
 	defer func() {
 		conn.Close()
