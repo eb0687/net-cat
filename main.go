@@ -161,14 +161,28 @@ func ProcessClient(conn net.Conn) {
 
 	scanner := bufio.NewScanner(conn)
 	var username string
-	if scanner.Scan() {
+	for scanner.Scan() {
 		username = scanner.Text()
-	}
-	if username == "" {
-		fmt.Fprintln(conn, "Empty username is not allowed!")
-		fmt.Fprintln(conn, "Reconnect to the server and try again.")
-		conn.Close()
-		return
+		if username == "" {
+			conn.Write([]byte("Empty username is not allowed! Please enter a valid username: "))
+			continue
+		}
+
+		usersMutex.Lock()
+		duplicate := false
+		for _, user := range users {
+			if user.username == username {
+				duplicate = true
+				break
+			}
+		}
+		usersMutex.Unlock()
+
+		if duplicate {
+			conn.Write([]byte("Username is already taken. Please enter a different username: "))
+		} else {
+			break
+		}
 	}
 
 	user := User{
