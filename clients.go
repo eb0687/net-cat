@@ -101,8 +101,4 @@ func ProcessClient(conn net.Conn) {
 		BroadcastMessage(user, msg, false)
 		DisplayPrompt(conn, username)
 	}
-
-	usersMutex.Lock()
-	delete(users, conn)
-	usersMutex.Unlock()
 }
