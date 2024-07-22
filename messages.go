@@ -29,15 +29,15 @@ func isASCII(s string) bool {
 }
 
 func NotifyAll(message string, sender User, isSystemMessage bool) {
+	// if !isASCII(message) {
+	// 	fmt.Println("Only ASCII characters are allowed")
+	// 	return
+	// }
+
 	usersMutex.Lock()
 	defer usersMutex.Unlock()
 
 	for conn, user := range users {
-
-		if !isASCII(message) {
-			conn.Write([]byte("Only ascii characters are allowed\n"))
-			return
-		}
 		if sender.username != "" && sender.username == user.username {
 			continue
 		}
