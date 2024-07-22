@@ -29,7 +29,8 @@ func ProcessClient(conn net.Conn) {
 	fmt.Print("new client has joined: ")
 
 	defer func() {
-		log.Printf("%s has requested to close the connection.", users[conn].username)
+		fmt.Printf("%s has requested to close the connection.\n", users[conn].username)
+		log.Printf("%s has requested to close the connection.\n", users[conn].username)
 		exitMessage := fmt.Sprintf("%s has left our chat...", users[conn].username)
 		BroadcastMessage(users[conn], exitMessage, true)
 		fmt.Fprintln(conn, "Goodbye!")
