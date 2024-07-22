@@ -80,7 +80,6 @@ func ProcessClient(conn net.Conn) {
 		connection: conn,
 	}
 
-	
 	usersMutex.Lock()
 	users[conn] = user
 	fmt.Println(username)
