@@ -19,11 +19,25 @@ var (
 	messagesMutex sync.Mutex
 )
 
+func isASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] > 127 {
+			return false
+		}
+	}
+	return true
+}
+
 func NotifyAll(message string, sender User, isSystemMessage bool) {
 	usersMutex.Lock()
 	defer usersMutex.Unlock()
 
 	for conn, user := range users {
+
+		if !isASCII(message) || !isASCII(sender.username) {
+			conn.Write([]byte("Only ascii characters are allowed\n"))
+			return
+		}
 		if sender.username != "" && sender.username == user.username {
 			continue
 		}
