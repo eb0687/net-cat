@@ -34,7 +34,7 @@ func NotifyAll(message string, sender User, isSystemMessage bool) {
 
 	for conn, user := range users {
 
-		if !isASCII(message) || !isASCII(sender.username) {
+		if !isASCII(message) {
 			conn.Write([]byte("Only ascii characters are allowed\n"))
 			return
 		}
