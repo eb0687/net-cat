@@ -9,9 +9,13 @@ import (
 	"time"
 )
 
+const (
+	isSystemMessage = true
+)
+
 type User struct {
 	username   string
-	ipaddress  string
+	ipAddress  string
 	joinedAt   time.Time
 	connection net.Conn
 }
@@ -22,9 +26,14 @@ var (
 )
 
 func ProcessClient(conn net.Conn) {
-	fmt.Println("Processing client connection...")
+	fmt.Print("new client has joined: ")
 
 	defer func() {
+		log.Printf("%s has requested to close the connection.", users[conn].username)
+		exitMessage := fmt.Sprintf("%s has left our chat...", users[conn].username)
+		BroadcastMessage(users[conn], exitMessage, true)
+		fmt.Fprintln(conn, "Goodbye!")
+
 		conn.Close()
 		usersMutex.Lock()
 		delete(users, conn)
@@ -66,30 +75,27 @@ func ProcessClient(conn net.Conn) {
 
 	user := User{
 		username:   username,
-		ipaddress:  conn.RemoteAddr().String(),
+		ipAddress:  conn.RemoteAddr().String(),
 		joinedAt:   time.Now(),
 		connection: conn,
 	}
 
+	
 	usersMutex.Lock()
 	users[conn] = user
+	fmt.Println(username)
 	usersMutex.Unlock()
 
 	joinMessage := fmt.Sprintf("%s has joined our chat...", username)
-	log.Printf("%s [%s] has joined the server", username, user.ipaddress)
+	log.Printf("%s [%s] has joined the server", username, user.ipAddress)
 
-	BroadcastMessage(user, joinMessage, true)
+	BroadcastMessage(user, joinMessage, isSystemMessage)
 	SendPreviousMessages(conn)
 	DisplayPrompt(conn, username)
 
 	for scanner.Scan() {
 		msg := scanner.Text()
 		if msg == "exit" {
-			log.Printf("%s has requested to close the connection.", username)
-			exitMessage := fmt.Sprintf("%s has left our chat...", username)
-			BroadcastMessage(user, exitMessage, true)
-			fmt.Fprintln(conn, "Goodbye!")
-			conn.Close()
 			break
 		}
 		if msg == "" {

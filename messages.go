@@ -41,8 +41,7 @@ func NotifyAll(message string, sender User, isSystemMessage bool) {
 		conn.Write([]byte("\n"))
 		if isSystemMessage {
 			conn.Write([]byte(message))
-			conn.Write([]byte("\n"))
-			conn.Write([]byte(formattedMessage + "\n" + prompt))
+			conn.Write([]byte("\n" + prompt))
 		} else {
 			conn.Write([]byte(formattedMessage + "\n" + prompt))
 		}
