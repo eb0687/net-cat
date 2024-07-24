@@ -52,6 +52,13 @@ func ProcessClient(conn net.Conn) {
 	var username string
 	for scanner.Scan() {
 		username = scanner.Text()
+		if !isASCII(username) {
+			conn.Write(
+				[]byte("Invalid characters are not allowed!\nPlease try to connect again.\n"),
+			)
+			return
+		}
+
 		if strings.TrimSpace(username) == "" {
 			conn.Write([]byte("Empty username is not allowed! Please enter a valid username: "))
 			continue
