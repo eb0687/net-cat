@@ -1,5 +1,5 @@
 bin
-tmp/
+tmp/*
 $target
 .t
 *.log
