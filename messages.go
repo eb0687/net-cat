@@ -42,7 +42,6 @@ func isASCII(s string) bool {
 
 func NotifyAll(message string, sender User, isSystemMessage bool) {
 	if !isASCII(message) {
-		fmt.Println("Only ASCII characters are allowed")
 		return
 	}
 
