@@ -21,7 +21,7 @@ NetCat (nc) is a versatile networking tool that reads and writes data across net
 
 ## Build
 
-In a temrinal navigate to the root of the project directory & run the below command to build the binary.
+In a terminal navigate to the root of the project directory & run the below command to build the binary.
 
 ```
 $ make build
