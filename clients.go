@@ -104,6 +104,11 @@ func ProcessClient(conn net.Conn) {
 			DisplayPrompt(conn, username)
 			continue
 		}
+		if !isASCII(msg) {
+			fmt.Fprintln(conn, "Invalid characters are not allowed!")
+			DisplayPrompt(conn, username)
+			continue
+		}
 
 		BroadcastMessage(user, msg, false)
 		DisplayPrompt(conn, username)
