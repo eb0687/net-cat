@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -19,9 +20,20 @@ var (
 	messagesMutex sync.Mutex
 )
 
+func isAllowedChar(c rune) bool {
+	allowedSpecialChars := "!@#$%^&*()_+-={}[]|\\:;\"'<>,.?/ "
+	if (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') {
+		return true
+	}
+	if strings.ContainsRune(allowedSpecialChars, c) {
+		return true
+	}
+	return false
+}
+
 func isASCII(s string) bool {
-	for i := 0; i < len(s); i++ {
-		if s[i] > 127 {
+	for _, v := range s {
+		if !isAllowedChar(v) {
 			return false
 		}
 	}
@@ -29,10 +41,10 @@ func isASCII(s string) bool {
 }
 
 func NotifyAll(message string, sender User, isSystemMessage bool) {
-	// if !isASCII(message) {
-	// 	fmt.Println("Only ASCII characters are allowed")
-	// 	return
-	// }
+	if !isASCII(message) {
+		fmt.Println("Only ASCII characters are allowed")
+		return
+	}
 
 	usersMutex.Lock()
 	defer usersMutex.Unlock()
