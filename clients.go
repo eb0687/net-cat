@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -51,7 +52,7 @@ func ProcessClient(conn net.Conn) {
 	var username string
 	for scanner.Scan() {
 		username = scanner.Text()
-		if username == "" {
+		if strings.TrimSpace(username) == "" {
 			conn.Write([]byte("Empty username is not allowed! Please enter a valid username: "))
 			continue
 		}
@@ -98,7 +99,7 @@ func ProcessClient(conn net.Conn) {
 		if msg == "exit" {
 			break
 		}
-		if msg == "" {
+		if strings.TrimSpace(msg) == "" {
 			fmt.Fprintln(conn, "Empty messages are not allowed!")
 			DisplayPrompt(conn, username)
 			continue
